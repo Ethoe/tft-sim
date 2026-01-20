@@ -6,7 +6,7 @@ import (
 
 func init() {
 	Register(models.Item{
-		Name:        "Jeweled Gauntlet",
+		Name:        "JG",
 		Description: "Abilities can critically strike.",
 		Stats: map[models.StatType]float64{
 			models.StatCritChance:   0.35,

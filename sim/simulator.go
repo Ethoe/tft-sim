@@ -95,6 +95,14 @@ func (s *Simulator) Run() SimulationResult {
 }
 
 func (s *Simulator) tick() {
+	// Update current time in stats for buff calculations
+	s.Unit.Stats.SetCurrentTime(s.Time)
+
+	// Update buffs (check expiration, trigger OnTick callbacks)
+	if s.Unit.BuffManager != nil {
+		s.Unit.BuffManager.UpdateBuffs(s.Time)
+	}
+
 	// 1. Handle ongoing casts
 	if s.Unit.State == models.UnitStateCasting && s.Unit.CastingCtx != nil {
 		if s.Time >= s.Unit.CastingCtx.EndTime {

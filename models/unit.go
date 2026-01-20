@@ -90,6 +90,9 @@ type Unit struct {
 	Items    []Item
 	Augments []Augment
 
+	// Buff system
+	BuffManager *BuffManager
+
 	// Combat tracking
 	TotalDamage  float64
 	DamageLog    []DamageEvent
@@ -118,7 +121,13 @@ func NewUnit(newUnit Unit, newAbility Ability, baseStats map[StatType]float64, s
 		DamageLog:      make([]DamageEvent, 0),
 		CritTracker:    NewCritTracker(),
 		NextAttackTime: 0,
+		BuffManager:    NewBuffManager(nil), // Will set unit reference after creation
 	}
+
+	// Set the unit reference in BuffManager
+	unit.BuffManager.Unit = unit
+	// Set the unit reference in Stats
+	unit.Stats.SetUnit(unit)
 
 	// Set base stats
 	for stat, value := range baseStats {

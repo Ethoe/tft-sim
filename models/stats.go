@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type StatType int
 
 const (
@@ -26,6 +28,8 @@ type Stats struct {
 	Base        map[StatType]float64
 	Bonus       map[StatType]float64
 	Multipliers map[StatType]float64
+	Unit        *Unit         // Reference to unit for buff calculations
+	CurrentTime time.Duration // Current simulation time for buff calculations
 }
 
 func NewStats() Stats {
@@ -33,7 +37,19 @@ func NewStats() Stats {
 		Base:        make(map[StatType]float64),
 		Bonus:       make(map[StatType]float64),
 		Multipliers: make(map[StatType]float64),
+		Unit:        nil,
+		CurrentTime: 0,
 	}
+}
+
+// SetUnit sets the unit reference for buff calculations
+func (s *Stats) SetUnit(unit *Unit) {
+	s.Unit = unit
+}
+
+// SetCurrentTime sets the current simulation time for buff calculations
+func (s *Stats) SetCurrentTime(currentTime time.Duration) {
+	s.CurrentTime = currentTime
 }
 
 func (s *Stats) Get(stat StatType) float64 {
@@ -43,6 +59,13 @@ func (s *Stats) Get(stat StatType) float64 {
 
 	if multiplier == 0 {
 		multiplier = 1.0
+	}
+
+	// Add buff bonuses if unit is available
+	if s.Unit != nil && s.Unit.BuffManager != nil {
+		buffBonuses, buffMultipliers := s.Unit.BuffManager.GetBuffStats(s.CurrentTime)
+		bonus += buffBonuses[stat]
+		multiplier += buffMultipliers[stat]
 	}
 
 	result := (base + bonus) * multiplier
