@@ -107,7 +107,7 @@ func (s *Simulator) tick() {
 	}
 
 	// 2. Check for ability cast
-	if s.Unit.CanCastAbility() && s.Unit.CurrentMana >= s.Unit.Ability.ManaCost {
+	if s.Unit.CanCastAbility() && s.Unit.CurrentMana >= s.Unit.Stats.Get(models.StatMana) {
 		targets := s.findAbilityTargets()
 		if len(targets) > 0 {
 			s.startAbilityCast(targets)
@@ -151,7 +151,7 @@ func (s *Simulator) startAbilityCast(targets []*models.Target) {
 
 	if s.Config.Verbose {
 		fmt.Printf("[%.2fs] %s starts casting %s (cost: %.0f mana)\n",
-			s.Time.Seconds(), s.Unit.Name, s.Unit.Ability.Name, s.Unit.Ability.ManaCost)
+			s.Time.Seconds(), s.Unit.Name, s.Unit.Ability.Name, s.Unit.Stats.Get(models.StatMana))
 	}
 }
 

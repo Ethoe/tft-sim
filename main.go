@@ -13,25 +13,24 @@ func main() {
 
 	// Create a test unit with base stats
 	baseStats := map[models.StatType]float64{
-		models.StatHealth:       1000,
-		models.StatAttackDamage: 100,
+		models.StatHealth:       1440,
+		models.StatAttackDamage: 90,
 		models.StatAbilityPower: 0,
-		models.StatAttackSpeed:  1.0, // attacks per second
+		models.StatAttackSpeed:  .8, // attacks per second
 		models.StatArmor:        30,
 		models.StatMagicResist:  30,
-		models.StatMana:         50,
-		models.StatCritChance:   0.00,
-		models.StatCritDamage:   0,
+		models.StatMana:         50000,
+		models.StatCritChance:   0.25,
+		models.StatCritDamage:   .4,
 	}
 
 	newAbility := models.Ability{
-		Name:         "Random Damage Ability",
-		BaseDamage:   200,
-		DamageType:   models.DamageTypePhysical,
-		ManaCost:     5000000,
-		CastTime:     300 * time.Millisecond,
-		IsAoE:        false,
-		IsAutoAttack: false,
+		Name:                 "Transcendent State",
+		BaseDamage:           85,
+		DamageType:           models.DamageTypePhysical,
+		CastTime:             4 * time.Second,
+		IsAoE:                true,
+		IsAutoAttackModifier: true,
 	}
 
 	newUnit := models.Unit{

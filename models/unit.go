@@ -55,7 +55,6 @@ type Ability struct {
 	ADRatio                     float64
 	APRatio                     float64
 	DamageType                  DamageType
-	ManaCost                    float64
 	CastTime                    time.Duration
 	IsAoE                       bool
 	IsAutoAttack                bool
@@ -178,7 +177,7 @@ func (u *Unit) CanCastAbility() bool {
 		return false
 	}
 
-	if u.CurrentMana < u.Ability.ManaCost {
+	if u.CurrentMana < u.Stats.Get(StatMana) {
 		return false
 	}
 
@@ -198,8 +197,8 @@ func (u *Unit) StartCastingAbility(currentTime time.Duration, targets []*Target)
 	}
 
 	// Spend mana immediately
-	if u.Ability.ManaCost > 0 {
-		u.CurrentMana -= u.Ability.ManaCost
+	if u.Stats.Get(StatMana) > 0 {
+		u.CurrentMana -= u.Stats.Get(StatMana)
 	}
 
 	// Trigger on-cast-start effects
