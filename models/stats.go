@@ -52,6 +52,10 @@ func (s *Stats) SetCurrentTime(currentTime time.Duration) {
 	s.CurrentTime = currentTime
 }
 
+func (s *Stats) GetBonus(stat StatType) float64 {
+	return s.Bonus[stat]
+}
+
 func (s *Stats) Get(stat StatType) float64 {
 	base := s.Base[stat]
 	bonus := s.Bonus[stat]

@@ -148,16 +148,6 @@ func NewUnit(newUnit Unit, newAbility Ability, baseStats map[StatType]float64, s
 func (u *Unit) GetAttackDamage() float64 {
 	baseAD := u.Stats.Get(StatAttackDamage)
 
-	// Apply crit
-	critChance := u.Stats.Get(StatCritChance)
-	critDamage := u.Stats.Get(StatCritDamage)
-
-	// Simplified crit calculation
-	isCrit := critChance > 0 // In real implementation, use RNG
-	if isCrit {
-		return baseAD * (1 + critDamage)
-	}
-
 	return baseAD
 }
 
@@ -237,7 +227,7 @@ func (u *Unit) CompleteCast(currentTime time.Duration) {
 }
 
 func (u *Unit) GainMana(fromAutoAttack bool, fromAttack float64) {
-	if u.State == UnitStateCasting && u.CastingCtx != nil && !u.CastingCtx.CanGainMana {
+	if u.CastingCtx != nil && !u.CastingCtx.CanGainMana {
 		return
 	}
 

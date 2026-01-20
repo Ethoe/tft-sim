@@ -107,7 +107,7 @@ func (s *Simulator) tick() {
 	if s.Unit.State == models.UnitStateCasting && s.Unit.CastingCtx != nil {
 		if s.Time >= s.Unit.CastingCtx.EndTime {
 			s.Unit.CompleteCast(s.Time)
-		} else {
+		} else if !s.Unit.Ability.AllowsAutoAttacksDuringCast {
 			// Still casting, check for mana gain
 			s.onSecond()
 			return // Can't do anything else while casting
@@ -139,7 +139,7 @@ func (s *Simulator) onSecond() {
 	}
 
 	// Gain Mana
-	if s.Unit.State != models.UnitStateCasting || (s.Unit.CastingCtx != nil && s.Unit.CastingCtx.CanGainMana) {
+	if s.Unit.CastingCtx != nil && s.Unit.CastingCtx.CanGainMana {
 		manaRegen := s.Unit.Stats.Get(models.StatManaRegen)
 		s.Unit.CurrentMana += manaRegen
 	}
@@ -172,13 +172,26 @@ func (s *Simulator) performAutoAttack() {
 
 	var damage float64
 	var isCrit bool
+	var damageType models.DamageType = models.DamageTypePhysical
 
-	if s.Unit.Ability.IsAutoAttackModifier {
-		damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, s.Unit.Ability.BaseDamage)
-	} else {
-		damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, 0)
+	// Check for buffs that modify auto attacks
+	if s.Unit.BuffManager != nil {
+		activeBuffs := s.Unit.BuffManager.GetActiveBuffs(s.Time)
+		for _, buff := range activeBuffs {
+			if buff.ModifiesAutoAttack && buff.AutoAttackOverride != nil {
+				// Use buff's auto attack override
+				damage, isCrit = buff.AutoAttackOverride(s.Unit, target)
+				// Assume lasers deal physical damage (could be enhanced to return damage type)
+				damageType = models.DamageTypePhysical
+				goto damageCalculated
+			}
+		}
 	}
 
+	// No buff override, use normal auto attack
+	damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, s.Unit.GetAttackDamage(), true)
+
+damageCalculated:
 	// Apply on-hit effects before damage
 	for _, item := range s.Unit.Items {
 		if item.OnAttackEffect != nil {
@@ -187,13 +200,13 @@ func (s *Simulator) performAutoAttack() {
 	}
 
 	// Apply damage
-	actualDamage, isDead := target.TakeDamage(damage, models.DamageTypePhysical)
+	actualDamage, isDead := target.TakeDamage(damage, damageType)
 
 	// Log damage
 	event := models.DamageEvent{
 		Timestamp:  s.Time,
 		Damage:     actualDamage,
-		DamageType: models.DamageTypePhysical,
+		DamageType: damageType,
 		IsAbility:  false,
 		IsCrit:     isCrit,
 		TargetName: target.Name,
@@ -222,8 +235,15 @@ func (s *Simulator) performAutoAttack() {
 		if isCrit {
 			critStr = " CRIT!"
 		}
-		fmt.Printf("[%.2fs] %s auto attacks %s for %.1f%s damage (%.1f HP remaining)\n",
-			s.Time.Seconds(), s.Unit.Name, target.Name, actualDamage, critStr, target.CurrentHP)
+		damageTypeStr := "physical"
+		switch damageType {
+		case models.DamageTypeMagic:
+			damageTypeStr = "magic"
+		case models.DamageTypeTrue:
+			damageTypeStr = "true"
+		}
+		fmt.Printf("[%.2fs] %s auto attacks %s for %.1f %s%s damage (%.1f HP remaining)\n",
+			s.Time.Seconds(), s.Unit.Name, target.Name, actualDamage, damageTypeStr, critStr, target.CurrentHP)
 	}
 }
 

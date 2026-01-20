@@ -40,17 +40,16 @@ func CalculateCritDamage(baseDamage, critDamageMultiplier float64, isAbility boo
 	return baseDamage
 }
 
-func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64) (float64, bool) {
+func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64, canCrit bool) (float64, bool) {
 	// Get attacker stats
-	ad := attacker.Stats.Get(StatAttackDamage)
 	critChance := attacker.Stats.Get(StatCritChance)
 	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
 
-	totalDamage := baseDamage + ad
+	totalDamage := baseDamage
 
 	// Apply crit
 	isCrit := attacker.CritTracker.RollCrit(critChance)
-	if isCrit {
+	if isCrit && canCrit {
 		totalDamage *= critDamage
 	}
 
@@ -116,4 +115,25 @@ func CalculateMagicDamage(attacker *Unit, target *Target, baseDamage float64, ap
 	finalDamage := totalDamage * (1 - damageReduction)
 
 	return finalDamage, isCrit
+}
+
+// CalculateTrueDamage calculates true damage which ignores all resistances
+func CalculateTrueDamage(attacker *Unit, target *Target, baseDamage float64) (float64, bool) {
+	// Get attacker stats
+	critChance := attacker.Stats.Get(StatCritChance)
+	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
+
+	// Calculate base damage
+	totalDamage := baseDamage
+
+	// Apply crit (true damage can crit)
+	isCrit := attacker.CritTracker.RollCrit(critChance)
+	if isCrit {
+		totalDamage *= critDamage
+	}
+
+	// True damage ignores armor, MR, and damage reduction
+	// No resistance calculations needed
+
+	return totalDamage, isCrit
 }

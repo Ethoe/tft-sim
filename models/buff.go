@@ -315,10 +315,10 @@ var (
 			SetAutoAttackOverride(func(u *Unit, t *Target) (float64, bool) {
 				if hasTriggered {
 					// Use normal auto attack after first empowered one
-					return CalculatePhysicalDamage(u, t, 0)
+					return CalculatePhysicalDamage(u, t, 0, u.Ability.CanAbilityCrit)
 				}
 				hasTriggered = true
-				damage, isCrit := CalculatePhysicalDamage(u, t, bonusDamage)
+				damage, isCrit := CalculatePhysicalDamage(u, t, bonusDamage, u.Ability.CanAbilityCrit)
 				// Remove buff after use
 				u.BuffManager.RemoveBuff("Empowered Auto")
 				return damage, isCrit
