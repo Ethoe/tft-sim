@@ -47,8 +47,11 @@ func (s *Stats) Get(stat StatType) float64 {
 
 	result := (base + bonus) * multiplier
 
-	if stat == StatAttackSpeed && result > AttackSpeedCap {
-		return AttackSpeedCap
+	if stat == StatAttackSpeed || stat == StatAttackDamage {
+		result = base * (1 + bonus)
+		if stat == StatAttackSpeed && result > AttackSpeedCap {
+			return AttackSpeedCap
+		}
 	}
 
 	return result
