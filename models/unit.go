@@ -104,6 +104,7 @@ type DamageEvent struct {
 	DamageType DamageType
 	IsAbility  bool
 	TargetName string
+	IsCrit     bool
 }
 
 func NewUnit(newUnit Unit, newAbility Ability, baseStats map[StatType]float64, stage int) *Unit {
@@ -116,6 +117,7 @@ func NewUnit(newUnit Unit, newAbility Ability, baseStats map[StatType]float64, s
 		AttackTimer:    0,
 		AttackWindup:   200 * time.Millisecond,
 		DamageLog:      make([]DamageEvent, 0),
+		CritTracker:    NewCritTracker(),
 		NextAttackTime: 0,
 	}
 

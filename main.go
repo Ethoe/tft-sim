@@ -74,6 +74,8 @@ func main() {
 	fmt.Printf("DPS: %.1f\n", results.DPS)
 	fmt.Printf("Simulation Duration: %.2fs\n", sim.Time.Seconds())
 
+	fmt.Printf("Stats: %v\n", results.Stats)
+
 	fmt.Println("\nDamage by Type:")
 	for dmgType, amount := range results.DamageByType {
 		fmt.Printf("  %v: %.1f (%.1f%%)\n", dmgType, amount, (amount/results.TotalDamage)*100)

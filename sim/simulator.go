@@ -162,8 +162,23 @@ func (s *Simulator) performAutoAttack() {
 		return
 	}
 
-	// Calculate damage
-	damage := s.Unit.GetAttackDamage()
+	var damage float64
+	var isCrit bool
+
+	if s.Unit.Ability.IsAutoAttackModifier {
+		damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, s.Unit.Ability.BaseDamage)
+	} else {
+		damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, 0)
+	}
+
+	// Apply on-hit effects before damage
+	for _, item := range s.Unit.Items {
+		if item.OnAttackEffect != nil {
+			item.OnAttackEffect(s.Unit)
+		}
+	}
+
+	// Apply damage
 	actualDamage, isDead := target.TakeDamage(damage, models.DamageTypePhysical)
 
 	// Log damage
@@ -172,12 +187,14 @@ func (s *Simulator) performAutoAttack() {
 		Damage:     actualDamage,
 		DamageType: models.DamageTypePhysical,
 		IsAbility:  false,
+		IsCrit:     isCrit,
 		TargetName: target.Name,
 	}
 	s.Unit.DamageLog = append(s.Unit.DamageLog, event)
 	s.Unit.TotalDamage += actualDamage
+	s.Unit.AttackCount++
 
-	// Apply on-hit effects
+	// Apply on-hit effects after damage
 	for _, item := range s.Unit.Items {
 		if item.OnHitEffect != nil {
 			item.OnHitEffect(s.Unit, target, actualDamage)
@@ -193,60 +210,13 @@ func (s *Simulator) performAutoAttack() {
 	}
 
 	if s.Config.Verbose {
-		fmt.Printf("[%.2fs] %s auto attacks %s for %.1f damage (%.1f HP remaining)\n",
-			s.Time.Seconds(), s.Unit.Name, target.Name, actualDamage, target.CurrentHP)
-	}
-}
-
-func (s *Simulator) castAbility() {
-	if s.Unit.Ability.ManaCost > 0 {
-		s.Unit.CurrentMana -= s.Unit.Ability.ManaCost
-	}
-
-	// Find target(s)
-	targets := s.findAbilityTargets()
-
-	for _, target := range targets {
-		damage := s.calculateAbilityDamage()
-		actualDamage, isDead := target.TakeDamage(damage, s.Unit.Ability.DamageType)
-
-		// Log damage
-		event := models.DamageEvent{
-			Timestamp:  s.Time,
-			Damage:     actualDamage,
-			DamageType: s.Unit.Ability.DamageType,
-			IsAbility:  true,
-			TargetName: target.Name,
+		critStr := ""
+		if isCrit {
+			critStr = " CRIT!"
 		}
-		s.Unit.DamageLog = append(s.Unit.DamageLog, event)
-		s.Unit.TotalDamage += actualDamage
-
-		// Record kill time
-		if isDead && s.Results.TimeToKill[target.Name] == -1 {
-			s.Results.TimeToKill[target.Name] = s.Time
-		}
-
-		if s.Config.Verbose {
-			fmt.Printf("[%.2fs] %s casts %s on %s for %.1f damage (%.1f HP remaining)\n",
-				s.Time.Seconds(), s.Unit.Name, s.Unit.Ability.Name, target.Name, actualDamage, target.CurrentHP)
-		}
+		fmt.Printf("[%.2fs] %s auto attacks %s for %.1f%s damage (%.1f HP remaining)\n",
+			s.Time.Seconds(), s.Unit.Name, target.Name, actualDamage, critStr, target.CurrentHP)
 	}
-}
-
-func (s *Simulator) calculateAbilityDamage() float64 {
-	baseDamage := s.Unit.Ability.BaseDamage
-	if baseDamage == 0 {
-		// Use AD scaling for physical abilities, AP for magic
-		if s.Unit.Ability.DamageType == models.DamageTypePhysical {
-			baseDamage = s.Unit.Stats.Get(models.StatAttackDamage)
-		} else {
-			baseDamage = s.Unit.Stats.Get(models.StatAttackDamage) * 0.5 // Default scaling
-			ap := s.Unit.Stats.Get(models.StatAbilityPower)
-			baseDamage += baseDamage * (ap / 100) // AP scaling
-		}
-	}
-
-	return baseDamage
 }
 
 func (s *Simulator) findTarget() *models.Target {
@@ -282,14 +252,39 @@ func (s *Simulator) calculateResults() {
 	s.Results.TotalDamage = s.Unit.TotalDamage
 	s.Results.DPS = s.Unit.TotalDamage / s.Time.Seconds()
 	s.Results.DamageLog = s.Unit.DamageLog
+	s.Results.AttackCount = s.Unit.AttackCount
+	s.Results.AbilityCount = s.Unit.AbilityCount
 
-	// Calculate damage by type
+	// Initialize maps
+	s.Results.DamageByType = make(map[models.DamageType]float64)
+	s.Results.DamageBySource = make(map[string]float64)
+
+	// Calculate damage by type and source
 	for _, event := range s.Unit.DamageLog {
 		s.Results.DamageByType[event.DamageType] += event.Damage
+		sourceType := "Auto"
+		if event.IsAbility {
+			sourceType = "Ability"
+		}
+		s.Results.DamageBySource[sourceType] += event.Damage
+	}
+
+	// Calculate crit rate
+	if s.Unit.CritTracker.TotalAttacks > 0 {
+		s.Results.CritRate = float64(s.Unit.CritTracker.TotalCrits) / float64(s.Unit.CritTracker.TotalAttacks)
 	}
 
 	// Record final health
 	for _, target := range s.Targets {
 		s.Results.FinalHealth[target.Name] = target.CurrentHP
+	}
+
+	// Additional stats
+	s.Results.Stats = map[string]interface{}{
+		"FinalMana":      s.Unit.CurrentMana,
+		"MaxManaReached": s.Unit.Stats.Get(models.StatMana),
+		"AttackSpeed":    s.Unit.GetAttackSpeed(),
+		"AD":             s.Unit.Stats.Get(models.StatAttackDamage),
+		"AP":             s.Unit.Stats.Get(models.StatAbilityPower),
 	}
 }

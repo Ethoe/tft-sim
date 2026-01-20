@@ -15,7 +15,10 @@ type CritTracker struct {
 
 func NewCritTracker() *CritTracker {
 	return &CritTracker{
-		RNG: rand.New(rand.NewSource(time.Now().UnixNano())),
+		RNG:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		TotalCrits:   0,
+		TotalAttacks: 0,
+		CritStreak:   0,
 	}
 }
 
@@ -43,7 +46,6 @@ func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64)
 	critChance := attacker.Stats.Get(StatCritChance)
 	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
 
-	// Calculate base damage
 	totalDamage := baseDamage + ad
 
 	// Apply crit
@@ -54,7 +56,13 @@ func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64)
 
 	// Apply target resistances
 	armor := target.Stats.Get(StatArmor)
-	damageReduction := armor / (100 + armor)
+
+	var damageReduction float64
+	if armor >= 0 {
+		damageReduction = armor / (100 + armor)
+	} else {
+		damageReduction = 2 - (armor / (100 - armor))
+	}
 
 	// Apply damage reduction
 	totalDamage *= (1 - target.DamageReduction)
@@ -93,7 +101,13 @@ func CalculateMagicDamage(attacker *Unit, target *Target, baseDamage float64, ap
 
 	// Apply target resistances
 	mr := target.Stats.Get(StatMagicResist)
-	damageReduction := mr / (100 + mr)
+
+	var damageReduction float64
+	if mr >= 0 {
+		damageReduction = mr / (100 + mr)
+	} else {
+		damageReduction = 2 - (mr / (100 - mr))
+	}
 
 	// Apply damage reduction
 	totalDamage *= (1 - target.DamageReduction)

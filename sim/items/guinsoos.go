@@ -1,7 +1,6 @@
 package items
 
 import (
-	"fmt"
 	"tft-sim/models"
 )
 
@@ -14,7 +13,6 @@ func init() {
 			models.StatAbilityPower: 0.10,
 		},
 		OnSecondEffect: func(u *models.Unit) {
-			fmt.Println("attackspeed: ", u.Stats.Get(models.StatAttackSpeed))
 			u.Stats.AddBonus(models.StatAttackSpeed, 0.07)
 		},
 		Stacking:  true,

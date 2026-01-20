@@ -25,35 +25,12 @@ func NewTarget(name string, hp, armor, mr float64) *Target {
 }
 
 func (t *Target) TakeDamage(damage float64, damageType DamageType) (float64, bool) {
-	// Apply damage reduction
-	damage = damage * (1 - t.DamageReduction)
-
-	// Apply resistances
-	var resistance float64
-	switch damageType {
-	case DamageTypePhysical:
-		resistance = t.Stats.Get(StatArmor)
-	case DamageTypeMagic:
-		resistance = t.Stats.Get(StatMagicResist)
-	default:
-		resistance = 0
-	}
-
-	// TFT damage reduction formula (simplified)
-	var damageReduction float64
-	if resistance >= 0 {
-		damageReduction = resistance / (100 + resistance)
-	} else {
-		damageReduction = 2 - (resistance / (100 - resistance))
-	}
-	actualDamage := damage * (1 - damageReduction)
-
-	t.CurrentHP -= actualDamage
+	t.CurrentHP -= damage
 	isDead := t.CurrentHP <= 0
 
 	if isDead {
 		t.CurrentHP = 0
 	}
 
-	return actualDamage, isDead
+	return damage, isDead
 }
