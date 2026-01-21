@@ -53,6 +53,11 @@ func (s *Stats) SetCurrentTime(currentTime time.Duration) {
 }
 
 func (s *Stats) GetBonus(stat StatType) float64 {
+	if s.Unit != nil && s.Unit.BuffManager != nil {
+		buffBonuses, _ := s.Unit.BuffManager.GetBuffStats(s.CurrentTime)
+		return s.Bonus[stat] + buffBonuses[stat]
+	}
+
 	return s.Bonus[stat]
 }
 

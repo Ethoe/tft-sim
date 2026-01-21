@@ -67,7 +67,7 @@ func CalculateDamage(attacker *Unit, target *Target, resistance float64, baseDam
 	// Final damage after armor
 	finalDamage := totalDamage * (1 - damageReduction)
 
-	return finalDamage, isCrit
+	return finalDamage, isCrit && canCrit
 }
 
 // CalculateTrueDamage calculates true damage which ignores all resistances

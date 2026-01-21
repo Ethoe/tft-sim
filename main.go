@@ -11,19 +11,18 @@ import (
 
 func main() {
 	// Get Yunara unit from registry (1-star)
-	unit, exists := units.Get("Yunara", 2)
+	unit, exists := units.Get("Yunara", 1)
 	if !exists {
 		fmt.Println("Error: Yunara unit not found in registry")
 		return
 	}
 
 	// Add items
-	// if deathblade, exists := items.Get("Deathblade"); exists {
-	// 	unit.AddItem(deathblade)
-	// }
+	if titans, exists := items.Get("Titans"); exists {
+		unit.AddItem(titans)
+	}
 
 	if guinsoos, exists := items.Get("Guinsoos"); exists {
-		unit.AddItem(guinsoos)
 		unit.AddItem(guinsoos)
 	}
 

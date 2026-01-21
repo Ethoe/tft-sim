@@ -170,6 +170,8 @@ func (s *Simulator) performAutoAttack() {
 		return
 	}
 
+	isOverride := false
+
 	physDmg := s.Unit.GetAttackDamage()
 	var damageType models.DamageType = models.DamageTypePhysical
 	// Check for buffs that modify auto attacks
@@ -179,11 +181,16 @@ func (s *Simulator) performAutoAttack() {
 			if buff.ModifiesAutoAttack && buff.AutoAttackOverride != nil {
 				// Use buff's auto attack override
 				physDmg = buff.AutoAttackOverride(s.Unit, target)
+				isOverride = true
 			}
 		}
 	}
 
-	physResult, isCrit := models.CalculateDamage(s.Unit, target, target.Stats.Get(models.StatArmor), physDmg, true)
+	canCrit := true
+	if isOverride {
+		canCrit = s.Unit.Ability.CanAbilityCrit
+	}
+	physResult, isCrit := models.CalculateDamage(s.Unit, target, target.Stats.Get(models.StatArmor), physDmg, canCrit)
 	// Apply on-hit effects before damage
 	for _, item := range s.Unit.Items {
 		if item.OnAttackEffect != nil {
