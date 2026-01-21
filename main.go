@@ -31,7 +31,7 @@ func runSimulation(buildName string, itemNames []string) (sim.SimulationResult, 
 
 	// Create targets
 	targets := []*models.Target{
-		models.NewTarget("Frontline Tank", 5000, 30, 50),
+		models.NewTarget("Frontline Tank", 50000, 100, 50),
 	}
 
 	// Create and run simulation
@@ -51,18 +51,20 @@ func runSimulation(buildName string, itemNames []string) (sim.SimulationResult, 
 func main() {
 	fmt.Println("=== TFT Simulation Build Comparison ===")
 
+	generateIndividual := false
+
 	// Define the two builds to compare
 	builds := []struct {
 		name      string
 		itemNames []string
 	}{
 		{
-			name:      "Guinsoos + Titans + IE",
+			name:      "Yunara - Guinsoos + Titans + IE",
 			itemNames: []string{"Guinsoos", "Titans", "IE"},
 		},
 		{
-			name:      "Guinsoos + Deathblade + IE",
-			itemNames: []string{"Guinsoos", "Deathblade", "IE"},
+			name:      "Yunara - Guinsoos + Titans + DB",
+			itemNames: []string{"Guinsoos", "Titans", "Deathblade"},
 		},
 	}
 
@@ -125,16 +127,18 @@ func main() {
 	}
 
 	// Also generate individual charts for each build
-	for i, result := range allResults {
-		buildName := strings.ReplaceAll(strings.ToLower(buildLabels[i]), " + ", "_")
-		buildName = strings.ReplaceAll(buildName, " ", "_")
+	if generateIndividual {
+		for i, result := range allResults {
+			buildName := strings.ReplaceAll(strings.ToLower(buildLabels[i]), " + ", "_")
+			buildName = strings.ReplaceAll(buildName, " ", "_")
 
-		// Generate cumulative damage chart for this build
-		cumulativeChart := filepath.Join(outputDir, fmt.Sprintf("%s_damage_over_time.png", buildName))
-		if err := output.GenerateDamageChart(result, cumulativeChart); err != nil {
-			fmt.Printf("Failed to generate cumulative damage chart for %s: %v\n", buildLabels[i], err)
-		} else {
-			fmt.Printf("✓ Individual chart for %s saved to: %s\n", buildLabels[i], cumulativeChart)
+			// Generate cumulative damage chart for this build
+			cumulativeChart := filepath.Join(outputDir, fmt.Sprintf("%s_damage_over_time.png", buildName))
+			if err := output.GenerateDamageChart(result, cumulativeChart); err != nil {
+				fmt.Printf("Failed to generate cumulative damage chart for %s: %v\n", buildLabels[i], err)
+			} else {
+				fmt.Printf("✓ Individual chart for %s saved to: %s\n", buildLabels[i], cumulativeChart)
+			}
 		}
 	}
 
