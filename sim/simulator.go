@@ -154,8 +154,8 @@ func (s *Simulator) onSecond() {
 
 	// Second Effects
 	for _, item := range s.Unit.Items {
-		if item.OnSecondEffect != nil {
-			item.OnSecondEffect(s.Unit)
+		if item.Item.OnSecondEffect != nil {
+			item.Item.OnSecondEffect(&item)
 		}
 	}
 
@@ -201,8 +201,8 @@ func (s *Simulator) performAutoAttack() {
 	physResult, isCrit := models.CalculateDamage(s.Unit, target, target.Stats.Get(models.StatArmor), physDmg, canCrit)
 	// Apply on-hit effects before damage
 	for _, item := range s.Unit.Items {
-		if item.OnAttackEffect != nil {
-			item.OnAttackEffect(s.Unit)
+		if item.Item.OnAttackEffect != nil {
+			item.Item.OnAttackEffect(&item)
 		}
 	}
 
@@ -224,8 +224,8 @@ func (s *Simulator) performAutoAttack() {
 
 	// Apply on-hit effects after damage
 	for _, item := range s.Unit.Items {
-		if item.OnHitEffect != nil {
-			item.OnHitEffect(s.Unit, target, actualDamage)
+		if item.Item.OnHitEffect != nil {
+			item.Item.OnHitEffect(&item, target, actualDamage)
 		}
 	}
 

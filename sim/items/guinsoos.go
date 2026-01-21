@@ -12,8 +12,9 @@ func init() {
 			models.StatAttackSpeed:  0.10,
 			models.StatAbilityPower: 0.10,
 		},
-		OnSecondEffect: func(u *models.Unit) {
-			u.Stats.AddBonus(models.StatAttackSpeed, 0.07)
+		OnSecondEffect: func(itemInstance *models.ItemInstance) {
+			unit := itemInstance.Owner
+			unit.Stats.AddBonus(models.StatAttackSpeed, 0.07)
 		},
 		Stacking:  true,
 		MaxStacks: 10000,

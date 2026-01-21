@@ -1,6 +1,8 @@
 package models
 
 import (
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -87,7 +89,7 @@ type Unit struct {
 	Ability Ability
 
 	// Items and augments
-	Items    []Item
+	Items    []ItemInstance
 	Augments []Augment
 
 	// Buff system
@@ -269,7 +271,13 @@ func (u *Unit) GetAttackInterval() time.Duration {
 }
 
 func (u *Unit) AddItem(item Item) {
-	u.Items = append(u.Items, item)
+	itemInstance := ItemInstance{
+		UniqueName: strings.Join([]string{item.Name, strconv.Itoa(len(u.Items))}, ""),
+		Item:       item,
+		Stacks:     0,
+		Owner:      u,
+	}
+	u.Items = append(u.Items, itemInstance)
 	// Apply item stats
 	for stat, value := range item.Stats {
 		u.Stats.AddBonus(stat, value)
@@ -283,7 +291,7 @@ func (u *Unit) AddItem(item Item) {
 	}
 
 	if item.OnEquipEffect != nil {
-		//item.OnEquipEffect(u, &u.Items)
+		item.OnEquipEffect(&itemInstance, &u.Items)
 	}
 }
 

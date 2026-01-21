@@ -15,7 +15,7 @@ import (
 // runSimulation runs a simulation with a specific build and returns the results
 func runSimulation(buildName string, itemNames []string) (sim.SimulationResult, error) {
 	// Get Yunara unit from registry (1-star)
-	unit, exists := units.Get("Yunara", 1)
+	unit, exists := units.Get("Yunara", 2)
 	if !exists {
 		return sim.SimulationResult{}, fmt.Errorf("Yunara unit not found in registry")
 	}
@@ -59,12 +59,20 @@ func main() {
 		itemNames []string
 	}{
 		{
-			name:      "Yunara - Guinsoos + Titans + IE",
+			name:      "Yunara - RB Kraken IE",
+			itemNames: []string{"Guinsoos", "Kraken", "IE"},
+		},
+		{
+			name:      "Yunara - RB RB IE",
+			itemNames: []string{"Guinsoos", "Guinsoos", "IE"},
+		},
+		{
+			name:      "Yunara - RB Titans IE",
 			itemNames: []string{"Guinsoos", "Titans", "IE"},
 		},
 		{
-			name:      "Yunara - Red + Titans + IE",
-			itemNames: []string{"Red", "Titans", "IE"},
+			name:      "Yunara - RB Strikers IE",
+			itemNames: []string{"Guinsoos", "Strikers", "IE"},
 		},
 	}
 

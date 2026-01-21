@@ -4,11 +4,11 @@ type Item struct {
 	Name             string
 	Description      string
 	Stats            map[StatType]float64
-	OnHitEffect      func(*Unit, *Target, float64)
-	OnAttackEffect   func(*Unit)
-	OnAbilityCast    func(*Unit)
-	OnSecondEffect   func(*Unit)
-	OnEquipEffect    func(*Unit, *[]Item)
+	OnHitEffect      func(*ItemInstance, *Target, float64)
+	OnAttackEffect   func(*ItemInstance)
+	OnAbilityCast    func(*ItemInstance)
+	OnSecondEffect   func(*ItemInstance)
+	OnEquipEffect    func(*ItemInstance, *[]ItemInstance)
 	Unique           bool
 	AllowAbilityCrit bool
 	Stacking         bool
@@ -16,7 +16,8 @@ type Item struct {
 }
 
 type ItemInstance struct {
-	Item   Item
-	Stacks int
-	Owner  *Unit
+	UniqueName string
+	Item       Item
+	Stacks     int
+	Owner      *Unit
 }

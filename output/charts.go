@@ -27,14 +27,20 @@ func GenerateDamageChart(results sim.SimulationResult, filename string) error {
 		pts[i].Y = dot.CumulativeDamage
 	}
 
-	line, err := plotter.NewLine(pts)
+	line, scatter, err := plotter.NewLinePoints(pts)
 	if err != nil {
-		return fmt.Errorf("failed to create line plot: %w", err)
+		return fmt.Errorf("failed to create line and scatter plot: %w", err)
 	}
 	line.Color = plotutil.Color(0)
 	line.Width = vg.Points(1.5)
+	line.StepStyle = plotter.NoStep // Ensure straight lines between points (not smoothed)
 
-	p.Add(line)
+	// Style the scatter points
+	scatter.GlyphStyle.Color = plotutil.Color(0)
+	scatter.GlyphStyle.Radius = vg.Points(2.5)
+	scatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[0]
+
+	p.Add(line, scatter)
 	p.Legend.Add("Total Damage", line)
 
 	// Save to file
@@ -77,29 +83,41 @@ func GenerateDamageByTypeChart(results sim.SimulationResult, filename string) er
 		truePts = append(truePts, plotter.XY{X: t, Y: cumulativeByType[models.DamageTypeTrue]})
 	}
 
-	// Create lines for each damage type
-	physicalLine, err := plotter.NewLine(physicalPts)
+	// Create lines and scatters for each damage type
+	physicalLine, physicalScatter, err := plotter.NewLinePoints(physicalPts)
 	if err != nil {
-		return fmt.Errorf("failed to create physical damage line: %w", err)
+		return fmt.Errorf("failed to create physical damage line and scatter: %w", err)
 	}
 	physicalLine.Color = plotutil.Color(0) // Blue
 	physicalLine.Width = vg.Points(1.5)
+	physicalLine.StepStyle = plotter.NoStep // Ensure straight lines between points (not smoothed)
+	physicalScatter.GlyphStyle.Color = plotutil.Color(0)
+	physicalScatter.GlyphStyle.Radius = vg.Points(2.5)
+	physicalScatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[0]
 
-	magicLine, err := plotter.NewLine(magicPts)
+	magicLine, magicScatter, err := plotter.NewLinePoints(magicPts)
 	if err != nil {
-		return fmt.Errorf("failed to create magic damage line: %w", err)
+		return fmt.Errorf("failed to create magic damage line and scatter: %w", err)
 	}
 	magicLine.Color = plotutil.Color(1) // Red
 	magicLine.Width = vg.Points(1.5)
+	magicLine.StepStyle = plotter.NoStep // Ensure straight lines between points (not smoothed)
+	magicScatter.GlyphStyle.Color = plotutil.Color(1)
+	magicScatter.GlyphStyle.Radius = vg.Points(2.5)
+	magicScatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[1]
 
-	trueLine, err := plotter.NewLine(truePts)
+	trueLine, trueScatter, err := plotter.NewLinePoints(truePts)
 	if err != nil {
-		return fmt.Errorf("failed to create true damage line: %w", err)
+		return fmt.Errorf("failed to create true damage line and scatter: %w", err)
 	}
 	trueLine.Color = plotutil.Color(2) // Green
 	trueLine.Width = vg.Points(1.5)
+	trueLine.StepStyle = plotter.NoStep // Ensure straight lines between points (not smoothed)
+	trueScatter.GlyphStyle.Color = plotutil.Color(2)
+	trueScatter.GlyphStyle.Radius = vg.Points(2.5)
+	trueScatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[2]
 
-	p.Add(physicalLine, magicLine, trueLine)
+	p.Add(physicalLine, physicalScatter, magicLine, magicScatter, trueLine, trueScatter)
 	p.Legend.Add("Physical Damage", physicalLine)
 	p.Legend.Add("Magic Damage", magicLine)
 	p.Legend.Add("True Damage", trueLine)
@@ -156,14 +174,18 @@ func GenerateDPSChart(results sim.SimulationResult, filename string, windowSize 
 		dpsPts = append(dpsPts, plotter.XY{X: currentTime, Y: dps})
 	}
 
-	line, err := plotter.NewLine(dpsPts)
+	line, scatter, err := plotter.NewLinePoints(dpsPts)
 	if err != nil {
-		return fmt.Errorf("failed to create DPS line: %w", err)
+		return fmt.Errorf("failed to create DPS line and scatter: %w", err)
 	}
 	line.Color = plotutil.Color(3) // Purple
 	line.Width = vg.Points(1.5)
+	line.StepStyle = plotter.NoStep // Ensure straight lines between points (not smoothed)
+	scatter.GlyphStyle.Color = plotutil.Color(3)
+	scatter.GlyphStyle.Radius = vg.Points(2.5)
+	scatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[3]
 
-	p.Add(line)
+	p.Add(line, scatter)
 	p.Legend.Add("DPS", line)
 
 	// Save to file
@@ -204,14 +226,21 @@ func GenerateComparisonChart(results []sim.SimulationResult, labels []string, fi
 			pts[j].Y = dot.CumulativeDamage
 		}
 
-		line, err := plotter.NewLine(pts)
+		line, scatter, err := plotter.NewLinePoints(pts)
 		if err != nil {
-			return fmt.Errorf("failed to create line for build %d: %w", i, err)
+			return fmt.Errorf("failed to create line and scatter for build %d: %w", i, err)
 		}
 
 		// Use different colors for each build
-		line.Color = plotutil.Color(i)
+		color := plotutil.Color(i)
+		line.Color = color
 		line.Width = vg.Points(1.5)
+		line.StepStyle = plotter.PostStep // Ensure straight lines between points (not smoothed)
+
+		// Style the scatter points
+		scatter.GlyphStyle.Color = color
+		scatter.GlyphStyle.Radius = vg.Points(2.5)
+		scatter.GlyphStyle.Shape = plotutil.DefaultGlyphShapes[i%len(plotutil.DefaultGlyphShapes)]
 
 		p.Add(line)
 		p.Legend.Add(labels[i], line)

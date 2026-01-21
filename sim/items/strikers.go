@@ -1,6 +1,7 @@
 package items
 
 import (
+	"fmt"
 	"tft-sim/models"
 	"time"
 )
@@ -15,14 +16,30 @@ func init() {
 			models.StatCritChance:  0.20,
 			models.StatDamageAmp:   0.10,
 		},
-		OnHitEffect: func(unit *models.Unit, target *models.Target, damage float64) {
+		OnHitEffect: func(itemInstance *models.ItemInstance, target *models.Target, damage float64) {
+			unit := itemInstance.Owner
+
 			// Check if the last attack was a critical strike
 			// The CritTracker is updated before OnHitEffect is called
 			if unit.CritTracker != nil && unit.CritTracker.CritStreak > 0 {
 				currentTime := unit.Stats.CurrentTime
 
+				itemIndex := -1
+				for i := range unit.Items {
+					if unit.Items[i].UniqueName == itemInstance.UniqueName {
+						itemIndex = i
+						break
+					}
+				}
+
+				if itemIndex == -1 {
+					return
+				}
+
+				buffName := fmt.Sprintf("Strikers Damage Amp%d", itemIndex)
+
 				// Apply DamageAmpBuff with 5% damage amp for 5 seconds, stacking up to 4 times
-				damageAmpBuff := models.NewBuff("Strikers Damage Amp", 5*time.Second)
+				damageAmpBuff := models.NewBuff(buffName, 5*time.Second)
 				damageAmpBuff.AddStatBonus(models.StatDamageAmp, 0.05)
 				damageAmpBuff.SetStacking(4, models.StackBehaviorAdditive)
 
