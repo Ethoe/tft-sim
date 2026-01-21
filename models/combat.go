@@ -53,6 +53,9 @@ func CalculateDamage(attacker *Unit, target *Target, resistance float64, baseDam
 		totalDamage *= critDamage
 	}
 
+	// Apply Amp
+	totalDamage *= 1 + attacker.Stats.Get(StatDamageAmp)
+
 	// Apply target resistances
 	var damageReduction float64
 	if resistance >= 0 {

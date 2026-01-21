@@ -63,8 +63,8 @@ func main() {
 			itemNames: []string{"Guinsoos", "Titans", "IE"},
 		},
 		{
-			name:      "Yunara - Guinsoos + Titans + DB",
-			itemNames: []string{"Guinsoos", "Titans", "Deathblade"},
+			name:      "Yunara - Red + Titans + IE",
+			itemNames: []string{"Red", "Titans", "IE"},
 		},
 	}
 

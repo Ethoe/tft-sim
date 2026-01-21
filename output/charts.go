@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"tft-sim/models"
 	"tft-sim/sim"
@@ -188,6 +189,7 @@ func GenerateComparisonChart(results []sim.SimulationResult, labels []string, fi
 	p.X.Label.Text = "Time (seconds)"
 	p.Y.Label.Text = "Cumulative Damage"
 	p.Legend.Top = true
+	p.X.Tick.Marker = fiveUnitTicks{}
 
 	// Create a line for each build
 	for i, result := range results {
@@ -221,4 +223,16 @@ func GenerateComparisonChart(results []sim.SimulationResult, labels []string, fi
 	}
 
 	return nil
+}
+
+type fiveUnitTicks struct{}
+
+func (fiveUnitTicks) Ticks(min, max float64) []plot.Tick {
+	var ticks []plot.Tick
+	// Start at the first multiple of 5 >= min
+	start := math.Ceil(min/5) * 5
+	for i := start; i <= max; i += 5 {
+		ticks = append(ticks, plot.Tick{Value: i, Label: fmt.Sprint(i)})
+	}
+	return ticks
 }
