@@ -28,13 +28,14 @@ type Buff struct {
 
 	// Behavioral modifications
 	ModifiesAutoAttack bool
-	AutoAttackOverride func(*Unit, *Target) (float64, bool) // Returns damage, isCrit
+	AutoAttackOverride func(*Unit, *Target) float64 // Returns physical damage
 
 	// Callbacks
-	OnApply   func(*Unit)
-	OnTick    func(*Unit, time.Duration) // Called each tick while active
-	OnExpire  func(*Unit)
-	OnRefresh func(*Unit, *Buff) // When buff is refreshed/reapplied
+	OnApply     func(*Unit)
+	OnTick      func(*Unit, time.Duration) // Called each tick while active
+	OnExpire    func(*Unit)
+	OnRefresh   func(*Unit, *Buff) // When buff is refreshed/reapplied
+	OnHitEffect func(*Unit, *Target, float64, bool) (float64, DamageType, bool)
 
 	// Stacking
 	MaxStacks     int
@@ -70,7 +71,7 @@ func (b *Buff) AddStatMultiplier(stat StatType, value float64) *Buff {
 }
 
 // SetAutoAttackOverride sets a custom auto attack function
-func (b *Buff) SetAutoAttackOverride(fn func(*Unit, *Target) (float64, bool)) *Buff {
+func (b *Buff) SetAutoAttackOverride(fn func(*Unit, *Target) float64) *Buff {
 	b.ModifiesAutoAttack = true
 	b.AutoAttackOverride = fn
 	return b
@@ -84,7 +85,7 @@ func (b *Buff) SetStacking(maxStacks int, behavior StackBehavior) *Buff {
 }
 
 // SetCallbacks sets the buff's callback functions
-func (b *Buff) SetCallbacks(onApply, onTick, onExpire, onRefresh func(*Unit)) *Buff {
+func (b *Buff) SetCallbacks(onApply, onTick, onExpire, onRefresh func(*Unit), onHitEffect func(*Unit, *Target, float64, bool) (float64, DamageType, bool)) *Buff {
 	if onApply != nil {
 		b.OnApply = onApply
 	}
@@ -101,6 +102,10 @@ func (b *Buff) SetCallbacks(onApply, onTick, onExpire, onRefresh func(*Unit)) *B
 			onRefresh(u)
 		}
 	}
+	if onHitEffect != nil {
+		b.OnHitEffect = onHitEffect
+	}
+
 	return b
 }
 
@@ -296,6 +301,7 @@ var (
 				nil, // onTick
 				nil, // onExpire
 				nil, // onRefresh
+				nil, // onHitEffect
 			)
 	}
 
@@ -304,7 +310,7 @@ var (
 		return NewBuff("Damage Amplification", duration).
 			AddStatMultiplier(StatDamageAmp, amount).
 			SetCallbacks(
-				nil, nil, nil, nil,
+				nil, nil, nil, nil, nil,
 			)
 	}
 
@@ -312,19 +318,19 @@ var (
 	EmpoweredAutoBuff = func(duration time.Duration, bonusDamage float64) *Buff {
 		var hasTriggered bool
 		return NewBuff("Empowered Auto", duration).
-			SetAutoAttackOverride(func(u *Unit, t *Target) (float64, bool) {
+			SetAutoAttackOverride(func(u *Unit, t *Target) float64 {
 				if hasTriggered {
 					// Use normal auto attack after first empowered one
-					return CalculatePhysicalDamage(u, t, 0, u.Ability.CanAbilityCrit)
+					return 0
 				}
 				hasTriggered = true
-				damage, isCrit := CalculatePhysicalDamage(u, t, bonusDamage, u.Ability.CanAbilityCrit)
+
 				// Remove buff after use
 				u.BuffManager.RemoveBuff("Empowered Auto")
-				return damage, isCrit
+				return u.GetAttackDamage() + bonusDamage
 			}).
 			SetCallbacks(
-				nil, nil, nil, nil,
+				nil, nil, nil, nil, nil,
 			)
 	}
 )

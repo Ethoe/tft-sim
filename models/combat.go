@@ -40,7 +40,7 @@ func CalculateCritDamage(baseDamage, critDamageMultiplier float64, isAbility boo
 	return baseDamage
 }
 
-func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64, canCrit bool) (float64, bool) {
+func CalculateDamage(attacker *Unit, target *Target, resistance float64, baseDamage float64, canCrit bool) (float64, bool) {
 	// Get attacker stats
 	critChance := attacker.Stats.Get(StatCritChance)
 	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
@@ -54,13 +54,11 @@ func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64,
 	}
 
 	// Apply target resistances
-	armor := target.Stats.Get(StatArmor)
-
 	var damageReduction float64
-	if armor >= 0 {
-		damageReduction = armor / (100 + armor)
+	if resistance >= 0 {
+		damageReduction = resistance / (100 + resistance)
 	} else {
-		damageReduction = 2 - (armor / (100 - armor))
+		damageReduction = 2 - (resistance / (100 - resistance))
 	}
 
 	// Apply damage reduction
@@ -72,53 +70,8 @@ func CalculatePhysicalDamage(attacker *Unit, target *Target, baseDamage float64,
 	return finalDamage, isCrit
 }
 
-func CalculateMagicDamage(attacker *Unit, target *Target, baseDamage float64, apRatio float64) (float64, bool) {
-	// Get attacker stats
-	ap := attacker.Stats.Get(StatAbilityPower)
-	critChance := attacker.Stats.Get(StatCritChance)
-	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
-
-	// Check if abilities can crit
-	canAbilityCrit := false
-	for _, item := range attacker.Items {
-		if item.AllowAbilityCrit {
-			canAbilityCrit = true
-			break
-		}
-	}
-
-	// Calculate base damage
-	apDamage := ap * apRatio
-	totalDamage := baseDamage + apDamage
-
-	// Apply crit if allowed
-	isCrit := false
-	if canAbilityCrit && attacker.CritTracker.RollCrit(critChance) {
-		totalDamage *= critDamage
-		isCrit = true
-	}
-
-	// Apply target resistances
-	mr := target.Stats.Get(StatMagicResist)
-
-	var damageReduction float64
-	if mr >= 0 {
-		damageReduction = mr / (100 + mr)
-	} else {
-		damageReduction = 2 - (mr / (100 - mr))
-	}
-
-	// Apply damage reduction
-	totalDamage *= (1 - target.DamageReduction)
-
-	// Final damage after MR
-	finalDamage := totalDamage * (1 - damageReduction)
-
-	return finalDamage, isCrit
-}
-
 // CalculateTrueDamage calculates true damage which ignores all resistances
-func CalculateTrueDamage(attacker *Unit, target *Target, baseDamage float64) (float64, bool) {
+func CalculateTrueDamage(attacker *Unit, target *Target, baseDamage float64, canCrit bool) (float64, bool) {
 	// Get attacker stats
 	critChance := attacker.Stats.Get(StatCritChance)
 	critDamage := 1.0 + attacker.Stats.Get(StatCritDamage)
@@ -128,7 +81,7 @@ func CalculateTrueDamage(attacker *Unit, target *Target, baseDamage float64) (fl
 
 	// Apply crit (true damage can crit)
 	isCrit := attacker.CritTracker.RollCrit(critChance)
-	if isCrit {
+	if isCrit && canCrit {
 		totalDamage *= critDamage
 	}
 

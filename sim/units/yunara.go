@@ -113,6 +113,13 @@ func applyTranscendentStateBuff(u *models.Unit, starLevel int, baseDamage, damag
 				}
 			},
 			nil,
+			func(u *models.Unit, t *models.Target, f float64, b bool) (float64, models.DamageType, bool) {
+				if b {
+					t.TakeDamage(f*0.3, models.DamageTypeTrue)
+					return f * 0.3, models.DamageTypeTrue, b
+				}
+				return 0, models.DamageTypeTrue, b
+			},
 		)
 
 	// Apply the buff
@@ -120,82 +127,29 @@ func applyTranscendentStateBuff(u *models.Unit, starLevel int, baseDamage, damag
 }
 
 // createLaserAttackOverride creates a function that overrides auto-attacks with lasers
-func createLaserAttackOverride(u *models.Unit, starLevel int, baseDamage, damageReduction float64) func(*models.Unit, *models.Target) (float64, bool) {
-	return func(attacker *models.Unit, target *models.Target) (float64, bool) {
-		// For now, simulate single target laser attack
-		// In a real implementation, this would hit multiple targets in a line
-
-		// Get all alive targets (simulating line piercing)
-		var aliveTargets []*models.Target
-		// This is a simplified version - in reality we'd need access to all targets
-		// For now, just hit the primary target
-		aliveTargets = append(aliveTargets, target)
+func createLaserAttackOverride(u *models.Unit, starLevel int, baseDamage, damageReduction float64) func(*models.Unit, *models.Target) float64 {
+	return func(attacker *models.Unit, target *models.Target) float64 {
+		// Assume only one target
 
 		// Calculate laser damage
-		totalDamage, anyCrit := CalculateLaserDamage(attacker, aliveTargets, baseDamage, starLevel)
-
-		return totalDamage, anyCrit
+		return CalculateLaserDamage(attacker, target, baseDamage, starLevel)
 	}
 }
 
 // CalculateLaserDamage calculates damage for Yone's Transcendent State lasers
-// baseDamage: 85/130/450 based on star level
-// targets: slice of targets in the line (closest to farthest)
-// starLevel: 1, 2, or 3 for damage reduction scaling
 // Returns total damage dealt and whether any laser crit
-func CalculateLaserDamage(attacker *models.Unit, targets []*models.Target, baseDamage float64, starLevel int) (float64, bool) {
-	if len(targets) == 0 {
-		return 0, false
-	}
-
-	totalDamage := 0.0
-	anyCrit := false
-
-	// Determine damage reduction per target based on star level
-	damageReductionPerTarget := 0.7 // 70% for star levels 1 and 2
-	if starLevel == 3 {
-		damageReductionPerTarget = 0.3 // 30% for star level 3
-	}
-
+func CalculateLaserDamage(attacker *models.Unit, target *models.Target, baseDamage float64, starLevel int) float64 {
 	// Calculate AD scaling
 	bonusAD := attacker.Stats.GetBonus(models.StatAttackDamage)
 
-	for i, target := range targets {
-		if target.CurrentHP <= 0 {
-			continue // Skip dead targets
-		}
+	// Calculate base laser damage
+	laserBaseDamage := baseDamage * (bonusAD + 1)
 
-		// Calculate base laser damage (85/130/450 + AD)
-		laserBaseDamage := baseDamage * (bonusAD + 1)
+	// Apply damage reduction for each target passed through
+	damageMultiplier := 1.0
 
-		// Apply damage reduction for each target passed through
-		damageMultiplier := 1.0
-		for j := 0; j < i; j++ {
-			damageMultiplier *= (1 - damageReductionPerTarget)
-		}
+	// Apply the piercing damage reduction
+	finalDamage := laserBaseDamage * damageMultiplier
 
-		// Calculate physical damage with the laser's base damage
-		physicalDamage, isCrit := models.CalculatePhysicalDamage(attacker, target, laserBaseDamage, attacker.Ability.CanAbilityCrit)
-
-		// Apply the piercing damage reduction
-		finalDamage := physicalDamage * damageMultiplier
-
-		if isCrit && attacker.Ability.CanAbilityCrit {
-			anyCrit = true
-			// Apply 33% bonus true damage on crit
-			// True damage bonus is 33% of the crit damage (before armor reduction)
-			// and is not subject to further crit
-			bonusTrueDamage := finalDamage * 0.33
-			// Apply true damage directly (ignores armor/MR/damage reduction)
-			//target.TakeDamage(bonusTrueDamage, models.DamageTypeTrue)
-			finalDamage += bonusTrueDamage
-			// totalDamage += bonusTrueDamage
-		}
-
-		// Apply damage to target
-		target.TakeDamage(finalDamage, models.DamageTypePhysical)
-		totalDamage += finalDamage
-	}
-
-	return totalDamage, anyCrit
+	return finalDamage
 }

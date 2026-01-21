@@ -170,28 +170,20 @@ func (s *Simulator) performAutoAttack() {
 		return
 	}
 
-	var damage float64
-	var isCrit bool
+	physDmg := s.Unit.GetAttackDamage()
 	var damageType models.DamageType = models.DamageTypePhysical
-
 	// Check for buffs that modify auto attacks
 	if s.Unit.BuffManager != nil {
 		activeBuffs := s.Unit.BuffManager.GetActiveBuffs(s.Time)
 		for _, buff := range activeBuffs {
 			if buff.ModifiesAutoAttack && buff.AutoAttackOverride != nil {
 				// Use buff's auto attack override
-				damage, isCrit = buff.AutoAttackOverride(s.Unit, target)
-				// Assume lasers deal physical damage (could be enhanced to return damage type)
-				damageType = models.DamageTypePhysical
-				goto damageCalculated
+				physDmg = buff.AutoAttackOverride(s.Unit, target)
 			}
 		}
 	}
 
-	// No buff override, use normal auto attack
-	damage, isCrit = models.CalculatePhysicalDamage(s.Unit, target, s.Unit.GetAttackDamage(), true)
-
-damageCalculated:
+	physResult, isCrit := models.CalculateDamage(s.Unit, target, target.Stats.Get(models.StatArmor), physDmg, true)
 	// Apply on-hit effects before damage
 	for _, item := range s.Unit.Items {
 		if item.OnAttackEffect != nil {
@@ -200,7 +192,7 @@ damageCalculated:
 	}
 
 	// Apply damage
-	actualDamage, isDead := target.TakeDamage(damage, damageType)
+	actualDamage := target.TakeDamage(physResult, damageType)
 
 	// Log damage
 	event := models.DamageEvent{
@@ -222,11 +214,50 @@ damageCalculated:
 		}
 	}
 
+	// Apply on-hit effects after damage
+	for _, buff := range s.Unit.BuffManager.GetActiveBuffs(s.Time) {
+		if buff.OnHitEffect != nil {
+			dmg, dmgType, crit := buff.OnHitEffect(s.Unit, target, actualDamage, isCrit)
+			if dmg > 0 {
+				// Log damage
+				event := models.DamageEvent{
+					Timestamp:  s.Time,
+					Damage:     dmg,
+					DamageType: dmgType,
+					IsAbility:  false,
+					IsCrit:     crit,
+					TargetName: target.Name,
+				}
+				s.Unit.DamageLog = append(s.Unit.DamageLog, event)
+				s.Unit.TotalDamage += dmg
+
+				if s.Config.Verbose {
+					critStr := ""
+					if crit {
+						critStr = " CRIT!"
+					}
+					var damageTypeStr string
+					switch dmgType {
+					case models.DamageTypePhysical:
+						damageTypeStr = "physical"
+					case models.DamageTypeMagic:
+						damageTypeStr = "magic"
+					case models.DamageTypeTrue:
+						damageTypeStr = "true"
+					}
+					fmt.Printf("[%.2fs] %s auto attacks %s for %.1f %s%s damage (%.1f HP remaining)\n",
+						s.Time.Seconds(), s.Unit.Name, target.Name, dmg, damageTypeStr, critStr, target.CurrentHP)
+				}
+			}
+
+		}
+	}
+
 	// Gain mana from auto attack
 	s.Unit.GainMana(true, 0)
 
 	// Record kill time
-	if isDead && s.Results.TimeToKill[target.Name] == -1 {
+	if target.IsDead() && s.Results.TimeToKill[target.Name] == -1 {
 		s.Results.TimeToKill[target.Name] = s.Time
 	}
 

@@ -24,13 +24,16 @@ func NewTarget(name string, hp, armor, mr float64) *Target {
 	return t
 }
 
-func (t *Target) TakeDamage(damage float64, damageType DamageType) (float64, bool) {
+func (t *Target) TakeDamage(damage float64, damageType DamageType) float64 {
 	t.CurrentHP -= damage
-	isDead := t.CurrentHP <= 0
 
-	if isDead {
+	if t.IsDead() {
 		t.CurrentHP = 0
 	}
 
-	return damage, isDead
+	return damage
+}
+
+func (t *Target) IsDead() bool {
+	return t.CurrentHP <= 0
 }
