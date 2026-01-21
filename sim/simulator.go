@@ -14,12 +14,20 @@ type SimulationConfig struct {
 	Verbose      bool
 }
 
+type DamageOverTime struct {
+	Timestamp        time.Duration
+	CumulativeDamage float64
+	InstantDamage    float64
+	DamageByType     map[models.DamageType]float64
+}
+
 type SimulationResult struct {
 	TotalDamage    float64
 	DPS            float64
 	DamageByType   map[models.DamageType]float64
 	DamageBySource map[string]float64
 	DamageLog      []models.DamageEvent
+	DamageOverTime []DamageOverTime
 	TimeToKill     map[string]time.Duration
 	FinalHealth    map[string]float64
 	Stats          map[string]interface{}
@@ -325,9 +333,27 @@ func (s *Simulator) calculateResults() {
 	s.Results.DamageByType = make(map[models.DamageType]float64)
 	s.Results.DamageBySource = make(map[string]float64)
 
-	// Calculate damage by type and source
+	// Calculate damage by type, source, and damage over time
+	var cumulativeDamage float64
+	s.Results.DamageOverTime = make([]DamageOverTime, 0, len(s.Unit.DamageLog))
+
 	for _, event := range s.Unit.DamageLog {
+		// Update cumulative damage
+		cumulativeDamage += event.Damage
+
+		// Add to damage over time tracking
+		dot := DamageOverTime{
+			Timestamp:        event.Timestamp,
+			CumulativeDamage: cumulativeDamage,
+			InstantDamage:    event.Damage,
+			DamageByType:     map[models.DamageType]float64{event.DamageType: event.Damage},
+		}
+		s.Results.DamageOverTime = append(s.Results.DamageOverTime, dot)
+
+		// Update damage by type
 		s.Results.DamageByType[event.DamageType] += event.Damage
+
+		// Update damage by source
 		sourceType := "Auto"
 		if event.IsAbility {
 			sourceType = "Ability"

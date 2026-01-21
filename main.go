@@ -2,39 +2,34 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"tft-sim/models"
+	"tft-sim/output"
 	"tft-sim/sim"
 	"tft-sim/sim/items"
 	"tft-sim/sim/units"
 )
 
-func main() {
+// runSimulation runs a simulation with a specific build and returns the results
+func runSimulation(buildName string, itemNames []string) (sim.SimulationResult, error) {
 	// Get Yunara unit from registry (1-star)
 	unit, exists := units.Get("Yunara", 1)
 	if !exists {
-		fmt.Println("Error: Yunara unit not found in registry")
-		return
+		return sim.SimulationResult{}, fmt.Errorf("Yunara unit not found in registry")
 	}
 
 	// Add items
-	if titans, exists := items.Get("Titans"); exists {
-		unit.AddItem(titans)
+	for _, itemName := range itemNames {
+		if item, exists := items.Get(itemName); exists {
+			unit.AddItem(item)
+		} else {
+			return sim.SimulationResult{}, fmt.Errorf("item %s not found in registry", itemName)
+		}
 	}
 
-	if guinsoos, exists := items.Get("Guinsoos"); exists {
-		unit.AddItem(guinsoos)
-	}
-
-	if ie, exists := items.Get("IE"); exists {
-		unit.AddItem(ie)
-	}
-
-	// Add augment
-	// combatTraining := models.Augments["Magic Wand"]
-	// unit.AddAugment(combatTraining)
-
-	// Create targets - add multiple targets to test laser piercing
+	// Create targets
 	targets := []*models.Target{
 		models.NewTarget("Frontline Tank", 5000, 30, 50),
 	}
@@ -43,82 +38,105 @@ func main() {
 	simulator := sim.NewSimulator(unit, targets)
 	results := simulator.Run()
 
-	// Print results
-	fmt.Println("\n=== Simulation Results ===")
+	// Print build summary
+	fmt.Printf("\n=== Build: %s ===\n", buildName)
+	fmt.Printf("Items: %v\n", itemNames)
 	fmt.Printf("Total Damage: %.1f\n", results.TotalDamage)
 	fmt.Printf("DPS: %.1f\n", results.DPS)
-
-	itemNames := make([]string, len(unit.Items))
-	for i, item := range unit.Items {
-		itemNames[i] = item.Name
-	}
-	fmt.Printf("%s %v Star - (%s)\n\n", unit.Name, unit.StarLevel, strings.Join(itemNames, ", "))
-
 	fmt.Printf("Simulation Duration: %.2fs\n", simulator.Time.Seconds())
 
-	// Print active buffs at the end
-	fmt.Println("\nActive Buffs at Simulation End:")
-	activeBuffs := unit.BuffManager.GetActiveBuffs(simulator.Time)
-	if len(activeBuffs) == 0 {
-		fmt.Println("  None")
+	return results, nil
+}
+
+func main() {
+	fmt.Println("=== TFT Simulation Build Comparison ===")
+
+	// Define the two builds to compare
+	builds := []struct {
+		name      string
+		itemNames []string
+	}{
+		{
+			name:      "Guinsoos + Titans + IE",
+			itemNames: []string{"Guinsoos", "Titans", "IE"},
+		},
+		{
+			name:      "Guinsoos + Deathblade + IE",
+			itemNames: []string{"Guinsoos", "Deathblade", "IE"},
+		},
+	}
+
+	// Run simulations for each build
+	var allResults []sim.SimulationResult
+	var buildLabels []string
+
+	for _, build := range builds {
+		fmt.Printf("\nRunning simulation for: %s\n", build.name)
+		results, err := runSimulation(build.name, build.itemNames)
+		if err != nil {
+			fmt.Printf("Error running simulation for %s: %v\n", build.name, err)
+			continue
+		}
+		allResults = append(allResults, results)
+		buildLabels = append(buildLabels, build.name)
+	}
+
+	if len(allResults) == 0 {
+		fmt.Println("Error: No simulations completed successfully")
+		return
+	}
+
+	// Print comparison summary
+	fmt.Println("\n=== Build Comparison Summary ===")
+	for i, result := range allResults {
+		fmt.Printf("\nBuild %d: %s\n", i+1, buildLabels[i])
+		fmt.Printf("  Total Damage: %.1f\n", result.TotalDamage)
+		fmt.Printf("  DPS: %.1f\n", result.DPS)
+		fmt.Printf("  Damage Breakdown:\n")
+		for dmgType, amount := range result.DamageByType {
+			typeName := "Physical"
+			switch dmgType {
+			case models.DamageTypeMagic:
+				typeName = "Magic"
+			case models.DamageTypeTrue:
+				typeName = "True"
+			}
+			percentage := (amount / result.TotalDamage) * 100
+			fmt.Printf("    %s: %.1f (%.1f%%)\n", typeName, amount, percentage)
+		}
+	}
+
+	// Generate comparison chart
+	fmt.Println("\n=== Generating Comparison Chart ===")
+
+	// Create output directory if it doesn't exist
+	outputDir := "output"
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		fmt.Printf("Warning: Failed to create output directory: %v\n", err)
+		// Continue anyway, charts might fail
+	}
+
+	// Generate comparison chart
+	comparisonChart := filepath.Join(outputDir, "build_comparison.png")
+	if err := output.GenerateComparisonChart(allResults, buildLabels, comparisonChart); err != nil {
+		fmt.Printf("Failed to generate comparison chart: %v\n", err)
 	} else {
-		for _, buff := range activeBuffs {
-			remaining := buff.RemainingDuration(simulator.Time)
-			fmt.Printf("  %s: %.1fs remaining\n",
-				buff.Name, remaining.Seconds())
-		}
+		fmt.Printf("✓ Build comparison chart saved to: %s\n", comparisonChart)
 	}
 
-	fmt.Printf("\nStats: %v\n", results.Stats)
+	// Also generate individual charts for each build
+	for i, result := range allResults {
+		buildName := strings.ReplaceAll(strings.ToLower(buildLabels[i]), " + ", "_")
+		buildName = strings.ReplaceAll(buildName, " ", "_")
 
-	fmt.Println("\nDamage by Type:")
-	for dmgType, amount := range results.DamageByType {
-		typeName := "Physical"
-		switch dmgType {
-		case models.DamageTypeMagic:
-			typeName = "Magic"
-		case models.DamageTypeTrue:
-			typeName = "True"
-		}
-		fmt.Printf("  %s: %.1f (%.1f%%)\n", typeName, amount, (amount/results.TotalDamage)*100)
-	}
-
-	fmt.Println("\nTarget Status:")
-	for name, health := range results.FinalHealth {
-		ttk := results.TimeToKill[name]
-		if ttk > 0 {
-			fmt.Printf("  %s: Killed at %.2fs\n", name, ttk.Seconds())
+		// Generate cumulative damage chart for this build
+		cumulativeChart := filepath.Join(outputDir, fmt.Sprintf("%s_damage_over_time.png", buildName))
+		if err := output.GenerateDamageChart(result, cumulativeChart); err != nil {
+			fmt.Printf("Failed to generate cumulative damage chart for %s: %v\n", buildLabels[i], err)
 		} else {
-			fmt.Printf("  %s: %.1f HP remaining\n", name, health)
+			fmt.Printf("✓ Individual chart for %s saved to: %s\n", buildLabels[i], cumulativeChart)
 		}
 	}
 
-	// Print damage timeline (first 15 events to see laser attacks)
-	fmt.Println("\nFirst 15 Damage Events:")
-	for i, event := range results.DamageLog {
-		if i >= 15 {
-			break
-		}
-		eventType := "Auto"
-		if event.IsAbility {
-			eventType = "Ability"
-		}
-		damageType := "Physical"
-		switch event.DamageType {
-		case models.DamageTypeMagic:
-			damageType = "Magic"
-		case models.DamageTypeTrue:
-			damageType = "True"
-		}
-		critStr := ""
-		if event.IsCrit {
-			critStr = " CRIT!"
-		}
-		fmt.Printf("  [%.2fs] %s %s on %s for %.1f %s damage%s\n",
-			event.Timestamp.Seconds(), eventType, unit.Name, event.TargetName, event.Damage, damageType, critStr)
-	}
-
-	// Print crit stats
-	fmt.Printf("\nCrit Rate: %.1f%% (%d/%d)\n",
-		results.CritRate*100, unit.CritTracker.TotalCrits, unit.CritTracker.TotalAttacks)
+	fmt.Println("\nComparison completed successfully!")
 }
