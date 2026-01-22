@@ -60,19 +60,19 @@ func main() {
 	}{
 		{
 			name:      "Yunara - RB Kraken IE",
-			itemNames: []string{"Guinsoos", "Kraken", "IE"},
-		},
-		{
-			name:      "Yunara - RB RB IE",
-			itemNames: []string{"Guinsoos", "Guinsoos", "IE"},
+			itemNames: []string{"Guinsoos", "Krakens", "IE"},
 		},
 		{
 			name:      "Yunara - RB Titans IE",
 			itemNames: []string{"Guinsoos", "Titans", "IE"},
 		},
 		{
-			name:      "Yunara - RB Strikers IE",
-			itemNames: []string{"Guinsoos", "Strikers", "IE"},
+			name:      "Yunara - 2Krakens IE",
+			itemNames: []string{"Krakens", "Krakens", "IE"},
+		},
+		{
+			name:      "Yunara - 5 DBs",
+			itemNames: []string{"Deathblade", "Deathblade", "Deathblade", "Deathblade", "Deathblade"},
 		},
 	}
 
@@ -102,6 +102,7 @@ func main() {
 		fmt.Printf("\nBuild %d: %s\n", i+1, buildLabels[i])
 		fmt.Printf("  Total Damage: %.1f\n", result.TotalDamage)
 		fmt.Printf("  DPS: %.1f\n", result.DPS)
+		fmt.Printf("  Crit Ratio: %.1f%% \n", result.CritRate*100)
 		fmt.Printf("  Damage Breakdown:\n")
 		for dmgType, amount := range result.DamageByType {
 			typeName := "Physical"
@@ -127,7 +128,7 @@ func main() {
 	}
 
 	// Generate comparison chart
-	comparisonChart := filepath.Join(outputDir, "build_comparison.png")
+	comparisonChart := filepath.Join(outputDir, "comparisons.png")
 	if err := output.GenerateComparisonChart(allResults, buildLabels, comparisonChart); err != nil {
 		fmt.Printf("Failed to generate comparison chart: %v\n", err)
 	} else {

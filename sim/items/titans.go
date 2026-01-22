@@ -49,8 +49,8 @@ func init() {
 			for _, activeBuff := range activeBuffs {
 				if activeBuff.Name == buffName && activeBuff.CurrentStacks >= 25 {
 					// Ensure damage amp is applied (as multiplier)
-					if activeBuff.StatMultipliers[models.StatDamageAmp] < 0.10 {
-						activeBuff.AddStatMultiplier(models.StatDamageAmp, 0.10)
+					if activeBuff.StatBonuses[models.StatDamageAmp] < 0.10 {
+						activeBuff.AddStatBonus(models.StatDamageAmp, 0.10)
 					}
 				}
 			}

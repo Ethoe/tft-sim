@@ -52,7 +52,7 @@ func init() {
 			// If we're about to reach 15 stacks (currently at 14), add AS bonus
 			// Only add it once when transitioning from 14 to 15 stacks
 			if currentStacks == 14 {
-				buff.AddStatBonus(models.StatAttackSpeed, 0.30)
+				buff.AddStatBonus(models.StatAttackSpeed, 0.15)
 			}
 
 			// Apply the buff (will refresh and stack if already exists)
