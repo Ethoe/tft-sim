@@ -59,20 +59,12 @@ func main() {
 		itemNames []string
 	}{
 		{
-			name:      "Yunara - RB Kraken IE",
-			itemNames: []string{"Guinsoos", "Krakens", "IE"},
-		},
-		{
-			name:      "Yunara - RB Titans IE",
+			name:      "Yunara - RB Titan IE",
 			itemNames: []string{"Guinsoos", "Titans", "IE"},
 		},
 		{
-			name:      "Yunara - 2Krakens IE",
-			itemNames: []string{"Krakens", "Krakens", "IE"},
-		},
-		{
-			name:      "Yunara - 5 DBs",
-			itemNames: []string{"Deathblade", "Deathblade", "Deathblade", "Deathblade", "Deathblade"},
+			name:      "Yunara - Red Titans IE",
+			itemNames: []string{"Red", "Titans", "IE"},
 		},
 	}
 
